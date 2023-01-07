@@ -26,4 +26,4 @@ schema:
     - str
   apk:
     - str
-image: ghcr.io/Visolo/{arch}-addon-custom_deps
+image: ghcr.io/visolo/{arch}-addon-custom_deps
