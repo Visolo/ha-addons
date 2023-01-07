@@ -18,4 +18,4 @@ options:
   message: "Hello world..."
 schema:
   message: "str?"
-image: "ghcr.io/Visolo/{arch}-addon-example"
+image: "ghcr.io/visolo/{arch}-addon-example"
