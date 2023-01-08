@@ -1,8 +1,8 @@
 # Home Assistant add-on repository by Visolo
 
-My repository with Add-ons for the [Home Assistant (former Hass.io) system](https://www.home-assistant.io/hassio/)
+My repository with Add-ons for [Home Assistant](https://www.home-assistant.io/)
 
-Work In Progress ....
+This repository contains a collection of addons created or improved by me. I use them on a personal level in my own system. Feel free to use them if you find them useful.
 
 [![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FVisolo%2Fha-addons)
 
