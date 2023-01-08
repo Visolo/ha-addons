@@ -12,21 +12,30 @@ This addon allows the installation of custom dependencies in the configuration d
 
 ## How to use
 
-1- Install de addon
+1. Install de addon
+2. Configure the list of pip packages you want to install
+3. If necessary configure the list of necessary apk packages
+4. Run the addon. When finished the packages are installed.
 
-2- Configure the list of pip packages you want to install
+**Tips:** 
 
-3- If necessary configure the list of necessary apk packages
-
-4- Run the addon. When finished the packages are installed.
-
-**Important:** 
+It's better to use yaml mode configuration. Use a list mode for packages.
+'''
+pypi:
+  - pip_package_1
+  - pip_package_2
+  - ...
+apk:
+  - apk_package_1
+  - apk_package_1
+  - ...
+'''
 
 You only need to run the addon once and the pip packages will remain installed even if you update Home Assistant.
 
 If you need to install any more packages, add them to the configuration list and run the addon again.
 
-**El addon borra todos los paquetes instalados en cada ejecución**
+**The addon deletes all installed packages on each run**
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
