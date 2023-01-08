@@ -12,6 +12,8 @@ This addon allows the installation of custom dependencies in the configuration d
 
 ## How to use
 
+This add-on is only visible to "Advanced Mode" users. To enable advanced mode, go to **Profile** -> and turn on **Advanced Mode**.
+
 1. Install de addon
 2. Configure the list of pip packages you want to install
 3. If necessary configure the list of necessary apk packages
