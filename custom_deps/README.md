@@ -20,7 +20,8 @@ This addon allows the installation of custom dependencies in the configuration d
 **Tips:** 
 
 It's better to use yaml mode configuration. Use a list mode for packages.
-´´´
+
+```
 pypi:
   - pip_package_1
   - pip_package_2
@@ -29,7 +30,7 @@ apk:
   - apk_package_1
   - apk_package_1
   - ...
-´´´
+```
 
 You only need to run the addon once and the pip packages will remain installed even if you update Home Assistant.
 
