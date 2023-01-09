@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4
+- Add `--root-user-action=ignore` to the pip install command to avoid root user warnings
+- Update readme
+- Fix: Remove "touch" during run (test pourpose)
+
 ## 1.3.3
 
 - Fix: Addon don´t start

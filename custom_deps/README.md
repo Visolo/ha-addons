@@ -21,7 +21,7 @@ This add-on is only visible to "Advanced Mode" users. To enable advanced mode, g
 
 **Tips:** 
 
-It's better to use yaml mode configuration. Use a list mode for packages.
+It's recomended to use yaml mode configuration. Use a list mode for packages.
 
 ```
 pypi:
@@ -30,7 +30,7 @@ pypi:
   - ...
 apk:
   - apk_package_1
-  - apk_package_1
+  - apk_package_2
   - ...
 ```
 
