@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.5
+
+- Update Python to 3.11
+
 ## 1.3.4
 - Add `--root-user-action=ignore` to the pip install command to avoid root user warnings
 - Update readme

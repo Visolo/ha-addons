@@ -1,0 +1,9 @@
+
+From: {{ name }}
+Host: {{ host }}
+IP Address: {{ ipaddress }}
+
+Shutdown by UPS PIco file-safe shutdown daemon at {{ now }}
+
+This is an automatically generated email.  Do not reply to this message.
+

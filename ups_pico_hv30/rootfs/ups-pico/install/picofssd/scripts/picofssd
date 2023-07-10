@@ -1,0 +1,221 @@
+#!/usr/bin/python3
+
+import sys
+import subprocess
+
+if (sys.platform == "linux") or (sys.platform == "linux2"):
+    pass
+else:
+    # Replace libraries by fake ones
+    import fake_rpi
+
+    sys.modules['RPi'] = fake_rpi.RPi     # Fake RPi
+    sys.modules['RPi.GPIO'] = fake_rpi.RPi.GPIO  # Fake GPIO
+    sys.modules['smbus'] = fake_rpi.smbus  # Fake smbus (I2C)
+
+#from pimodules import configuration
+from pimodules.alerts import sendEmail
+from pimodules.daemon import Daemon
+import RPi.GPIO as GPIO
+import socket
+#import xmltodict
+import argparse
+import logging.handlers
+import logging
+import time
+import atexit
+import signal
+import os
+# added Visolo
+import json
+"""
+
+PiModules(R) UPS PIco file-safe shutdown daemon.
+
+"""
+
+
+CLOCK_PIN = 27
+PULSE_PIN = 22
+BOUNCE_TIME = 30
+
+# CLASS FOR LOGGING FORMAT AND COLORS
+class CustomFormatter(logging.Formatter):
+
+    grey = "\x1b[38;20m"
+    green = "\x1b[32m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+
+    fmt1 = '[%(asctime)s] %(module)s %(levelname)s: '
+    fmt2 = '%(message)s'
+
+    FORMATS = {
+        logging.DEBUG: fmt1 + grey + fmt2 + reset,
+        logging.INFO: fmt1 + green + fmt2 + reset,
+        logging.WARNING: fmt1 + yellow + fmt2 + reset,
+        logging.ERROR: fmt1 + red + fmt2 + reset,
+        logging.CRITICAL: fmt1 + bold_red + fmt2 + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt, '%H:%M:%S')
+        return formatter.format(record)
+
+
+class fssd(Daemon):
+    #def __init__(self, pidfile, xmlconfig, loglevel=logging.NOTSET):
+    def __init__(self, pidfile, loglevel=logging.NOTSET):
+        Daemon.__init__(self, pidfile)
+        self.loglevel = loglevel
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(self.loglevel)
+        handler = logging.StreamHandler(sys.stdout)
+        #formatter = logging.Formatter('[%(asctime)s] %(module)s %(levelname)s: %(message)s', '%Y-%m-%d %H:%M:%S')
+        #handler.setFormatter(formatter)
+        handler.setFormatter(CustomFormatter())
+        self.log.addHandler(handler)
+
+        # New config in addon
+        with open('/data/options.json', 'r') as options:
+            self.config = json.load(options)
+
+        signal.signal(signal.SIGTERM, self.sigcatch)
+
+        self.counter = 0
+        self.mail_sent = False
+
+        # first interrupt on isr pin will start pulse high
+        self.sqwave = True
+
+    def setup(self):
+        """
+        GPIO initialisation
+
+        Note: This cannot go in the __init__ method because the unix double-fork in the generic daemon code
+        mucks up the initialisation of the GPIO system.
+
+        So it is called in the over-ridden run method.
+        """
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(CLOCK_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(PULSE_PIN, GPIO.OUT, initial=self.sqwave)
+        GPIO.add_event_detect(CLOCK_PIN, GPIO.FALLING, callback=self.isr, bouncetime=BOUNCE_TIME)
+
+    def isr(self, channel):
+        """
+        GPIO interrupt service routine
+        """
+        # This test is here because the user *might* have another HAT plugged in or another circuit that produces a
+        # falling-edge signal on another GPIO pin.
+        if channel != CLOCK_PIN:
+            return
+
+        # we can get the state of a pin with GPIO.input even when it is currently configured as an output
+        self.sqwave = not GPIO.input(PULSE_PIN)
+
+        # set pulse pin low before changing it to input to look for shutdown signal
+        GPIO.output(PULSE_PIN, False)
+        GPIO.setup(PULSE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if not GPIO.input(PULSE_PIN):
+            # disable irq to prevent multiple mails
+            GPIO.remove_event_detect(CLOCK_PIN)
+            # pin is low, this is shutdown signal from pico
+            self.counter += 1
+            self.log.warning("Lost power supply, Pi will shutdown")
+            if self.mail_sent == False:
+                self.mail_sent = True
+                self.alert_email()
+            time.sleep(2)
+            if self.config['test_mode']:
+                os.system('poweroff') # Alpine command - shutdown the addon
+            else: 
+                os.system('ha host shutdown') # HA CLI command - shutdown the system
+        else:
+            self.counter = 0
+
+        # change pulse pin back to output with flipped state
+        GPIO.setup(PULSE_PIN, GPIO.OUT, initial=self.sqwave)
+
+    def sigcatch(self, signum, frame):
+        """
+        Signal handler
+        """
+
+        if signum == signal.SIGTERM:
+            sys.exit(0)
+
+    def cleanup(self):
+        """
+        GPIO cleanup
+        """
+
+        self.log.debug("Cleanup")
+        self.log.info("Stopped")
+        GPIO.cleanup()
+
+    def alert_email(self):
+        # emailserver, username, port, security, fromAddr, toAddr, b64Password, msgSubjectTemplate, msgBodyTemplate
+        try:
+            if not self.config['mail_enabled']:
+                self.log.debug("Email alert is disabled")
+                return True
+
+            sendEmail(self.config['mail_server'], self.config['mail_username'], self.config['mail_port'], self.config['mail_security'],
+                      self.config['mail_sender-email-address'], self.config['mail_recipient-email-address'],
+                      self.config['mail_sender-password'], self.config['mail_subject-template'],
+                      self.config['mail_body-template'],self.config['identifying_name'])
+        except socket.error as e:
+            self.log.error(format("Exception in alert_email: %d, %s" % (e.errno, e.strerror)))
+        except:
+            self.log.error("Unexpected error in alert_email:", sys.exc_info()[0])
+
+    def run(self):
+        """
+        Super-class overloaded run method.
+        """
+        self.log.info("Started")
+        #self.log.debug(self.config['mail_Enabled'])
+        self.log.debug(f"Mail Enabled: {self.config['mail_enabled']}") 
+        if self.config['mail_enabled']:
+            #self.log.debug(self.config['mail_server'])
+            self.log.debug(f"Mail server: {self.config['mail_server']}") 
+            #self.log.debug(self.config['mail_username'])
+            self.log.debug(f"Mail username: {self.config['mail_username']}") 
+            #self.log.debug(self.config['mail_sender-email-address'])
+            self.log.debug(f"Mail sender-email-address: {self.config['mail_sender-email-address']}") 
+            #self.log.debug(self.config['mail_recipient-email-address'])
+            self.log.debug(f"Mail recipient-email-address: {self.config['mail_recipient-email-address']}") 
+
+        # register function to cleanup at exit
+        atexit.register(self.cleanup)
+
+        self.setup()
+
+        while True:
+            time.sleep(5)
+
+
+# parse the command-line
+parser = argparse.ArgumentParser()
+parser.add_argument('-l', '--log-level', help="Log level, 'info' or 'debug'",
+                    default='info', choices=['info', 'debug'])
+# parser.add_argument("-x", "--xml-config", help="XML config file",
+#                     default='picofssd.xml', required=False)
+#                    default='picofssd.xml', required=True)
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument("-d", "--debug", help="Keep in the foreground, do not daemonize",
+                   action="store_true", default=False)
+group.add_argument("-p", "--pid-file", help="PID file")
+args = parser.parse_args()
+
+# sd = fssd(args.pid_file, args.xml_config, {
+#           'info': logging.INFO, 'debug': logging.DEBUG}[args.log_level])
+sd = fssd(args.pid_file, {'info': logging.INFO, 'debug': logging.DEBUG}[args.log_level])
+
+# the argument to the start method is opposite of debug
+sd.start(not args.debug)

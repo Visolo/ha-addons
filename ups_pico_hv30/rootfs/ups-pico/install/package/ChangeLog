@@ -1,0 +1,19 @@
+Version 0.2
+===========
+
+:Released: 2023-01-04
+:Maintainer: David Pose
+
+* Updated version for run in homeassistant addon
+- Removed unused files (configuration.py)
+
+
+
+Version 0.1dev
+==============
+
+:Released: 2016-06-19
+:Maintainer: Mike Ray <mike.ray@btinternet.com>
+
+* Initial release for review by product development partners.
+
