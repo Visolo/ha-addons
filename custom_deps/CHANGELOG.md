@@ -1,10 +1,16 @@
 # Changelog
 
+## 1.3.6
+
+- Update Python to 3.12
+- Set minimum Core version to 2024.2.0
+
 ## 1.3.5
 
 - Update Python to 3.11 
 
 ## 1.3.4
+
 - Add `--root-user-action=ignore` to the pip install command to avoid root user warnings
 - Update readme
 - Fix: Remove "touch" during run (test pourpose)
