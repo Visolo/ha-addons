@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.7
+
+- Update Python to 3.13
+- Set minimum Core version to 2024.12.0
+
 ## 1.3.6
 
 - Update Python to 3.12
